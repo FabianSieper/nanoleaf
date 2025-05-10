@@ -37,35 +37,33 @@ task install
 
 ## Usage
 
-1. **Find your Nanoleaf IP**
+1. **Pair and store your API token**
+
+    Bring you nanoleaf light panel into pairming mode by pressing the off-button for 5 seconds until the led starts blinking. Afterwards, execute the following command:
 
    ```bash
-   task get-nanoleaf-ip
+   task new-nanoleaf
    ```
 
-   Prints the first Light-Panels device IP on your network.
+   The function retreives a pairing token, saves it in a caching-file within the repository and allows you to reference and control the linked nanoleaf in future commands.
 
-2. **Pair and store your API token**
+2. **Toggle panels on/off**
 
-   ```bash
-   task get-nanoleaf-token
-   ```
-
-   Retrieves a new pairing token and appends its `{ip, token}` to `nanoleaf.json` (avoids duplicates).
-
-3. **Toggle panels on/off**
+    > **Note:** To utilize this command, first create a conection to a nanoleaf by executing task "new-nanoleaf" - sett step #1
 
    ```bash
-   task nanoleaf-control
+   task power-toggle
    ```
 
    Opens an interactive menu to select a device and action (`on` or `off`).
 
-4. **Adjust brightness**
+3. **Adjust brightness**
 
-```bash
-task nanoleaf-brightness
-```
+    > **Note:** To utilize this command, first create a conection to a nanoleaf by executing task "new-nanoleaf" - sett step #1
+
+    ```bash
+    task brightness
+    ```
 
    Select a device and enter a brightness value (0–100).
 

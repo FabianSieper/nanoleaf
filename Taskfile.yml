@@ -10,34 +10,49 @@ tasks:
         | sed -n 's/.*(\(.*\)).*/\1/p'
     silent: true
 
-  get-nanoleaf-token:
-    desc: "Generate Nanoleaf pairing code (API token) from first Light-Panels device"
-    deps: ["get-nanoleaf-ip"]
+  new-nanoleaf:
+    desc: "Store new Nanoleaf device IP and token in caching file"
     cmds:
       - |
         IP=$(task get-nanoleaf-ip)
         echo "Found Nanoleaf device at IP: $IP"
         RESPONSE=$(curl -s -X POST http://$IP:16021/api/v1/new)
+        echo "Pairing response: $RESPONSE"
         TOKEN=$(echo "$RESPONSE" | jq -r '.auth_token')
+        if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ]; then
+          echo "Error: failed to retrieve token from $IP" >&2
+          exit 1
+        fi
+        NAME=$(gum input --prompt "Enter a name for this Nanoleaf device:")
         echo "Token: $TOKEN"
         FILE=nanoleaf.json
         if [ ! -f "$FILE" ]; then
           echo '[]' > "$FILE"
         fi
         if ! jq -e ".[] | select(.ip==\"$IP\")" "$FILE" >/dev/null; then
-          jq ". += [{\"ip\":\"$IP\",\"token\":\"$TOKEN\"}]" "$FILE" > tmp && mv tmp "$FILE"
+          jq ". += [{\"ip\":\"$IP\",\"token\":\"$TOKEN\",\"name\":\"$NAME\"}]" "$FILE" > tmp && mv tmp "$FILE"
           echo "Saved IP and token to $FILE"
+          # Cycle power off and on to confirm connectivity
+          curl -s -X PUT http://$IP:16021/api/v1/$TOKEN/state \
+            -H "Content-Type:application/json" \
+            -d '{"on":{"value":false}}'
+          sleep 1
+          curl -s -X PUT http://$IP:16021/api/v1/$TOKEN/state \
+            -H "Content-Type:application/json" \
+            -d '{"on":{"value":true}}'
+          echo "Cycled power off/on for $IP"
         else
           echo "Entry for IP $IP already exists, skipping append"
         fi
     silent: true
 
-  nanoleaf-brightness:
+  brightness:
     desc: "Interactive: select a Nanoleaf from nanoleaf.json and set brightness"
     cmds:
       - |
-        DEVICE=$(jq -r '.[].ip' nanoleaf.json | gum choose --header="Select Nanoleaf IP:")
-        TOKEN=$(jq -r --arg ip "$DEVICE" '.[] | select(.ip==$ip) | .token' nanoleaf.json)
+        DEVICE_NAME=$(jq -r '.[].name' nanoleaf.json | gum choose --header="Select Nanoleaf device:")
+        DEVICE=$(jq -r --arg name "$DEVICE_NAME" '.[] | select(.name==$name) | .ip' nanoleaf.json)
+        TOKEN=$(jq -r --arg name "$DEVICE_NAME" '.[] | select(.name==$name) | .token' nanoleaf.json)
         BRIGHTNESS=$(gum input --prompt "Enter brightness (0-100):")
         curl -v -X PUT http://$DEVICE:16021/api/v1/$TOKEN/state \
           -H "Content-Type: application/json" \
@@ -45,12 +60,13 @@ tasks:
         echo "Set brightness of $DEVICE to $BRIGHTNESS"
     silent: false
 
-  nanoleaf-control:
+  power-toggle:
     desc: "Interactive: select a Nanoleaf from nanoleaf.json and turn it ON or OFF"
     cmds:
       - |
-        DEVICE=$(jq -r '.[].ip' nanoleaf.json | gum choose --header="Select Nanoleaf IP:")
-        TOKEN=$(jq -r --arg ip "$DEVICE" '.[] | select(.ip==$ip) | .token' nanoleaf.json)
+        DEVICE_NAME=$(jq -r '.[].name' nanoleaf.json | gum choose --header="Select Nanoleaf device:")
+        DEVICE=$(jq -r --arg name "$DEVICE_NAME" '.[] | select(.name==$name) | .ip' nanoleaf.json)
+        TOKEN=$(jq -r --arg name "$DEVICE_NAME" '.[] | select(.name==$name) | .token' nanoleaf.json)
         ACTION=$(gum choose on off --header="Select action:")
         if [ "$ACTION" = "on" ]; then
           VALUE=true
