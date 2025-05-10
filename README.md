@@ -67,6 +67,62 @@ task install
 
    Select a device and enter a brightness value (0–100).
 
+4. **Fetch device info**
+
+   ```bash
+   task info
+   ```
+
+   Prompts to select a device and displays full device information in JSON.
+
+5. **List available effects**
+
+   ```bash
+   task effects-list
+   ```
+
+   Prompts to select a device and outputs its available effects.
+
+6. **Apply an effect**
+
+   ```bash
+   task set-effect
+   ```
+
+   Prompts to select a device and then choose an effect to apply immediately.
+
+7. **Show panel layout**
+
+   ```bash
+   task panel-layout
+   ```
+
+   Prompts to select a device and displays its panel layout configuration.
+
+8. **Identify device**
+
+   ```bash
+   task identify
+   ```
+
+   Prompts to select a device and triggers its identify sequence (lights blink).
+
+9. **Fetch rhythm settings**
+
+    ```bash
+    task rhythm
+    ```
+
+    Prompts to select a device and shows its current rhythm (music sync) settings.
+
+10. **Apply effect via effects-list**
+
+    ```bash
+    task apply-effect-via-list
+    ```
+
+    Uses the existing `effects-list` to select an effect, then prompts to select a device to apply it.
+
 ## nanoleaf.json
 
 After pairing, `nanoleaf.json` will contain an array of objects:

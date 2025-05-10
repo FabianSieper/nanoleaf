@@ -84,3 +84,83 @@ tasks:
     cmds:
       - |
         brew install nmap jq gum
+
+  info:
+    desc: "Fetch and display full device info"
+    cmds:
+      - |
+        DEVICE_NAME=$(jq -r '.[].name' nanoleaf.json | gum choose --header="Select Nanoleaf device:")
+        DEVICE=$(jq -r --arg name "$DEVICE_NAME" '.[] | select(.name==$name) | .ip' nanoleaf.json)
+        TOKEN=$(jq -r --arg name "$DEVICE_NAME" '.[] | select(.name==$name) | .token' nanoleaf.json)
+        curl -s http://$DEVICE:16021/api/v1/$TOKEN/ | jq
+    silent: false
+
+  effects-list:
+    desc: "List available effects for selected device"
+    cmds:
+      - |
+        DEVICE_NAME=$(jq -r '.[].name' nanoleaf.json | gum choose --header="Select device:")
+        DEVICE=$(jq -r --arg name "$DEVICE_NAME" '.[] | select(.name==$name) | .ip' nanoleaf.json)
+        TOKEN=$(jq -r --arg name "$DEVICE_NAME" '.[] | select(.name==$name) | .token' nanoleaf.json)
+        curl -s http://$DEVICE:16021/api/v1/$TOKEN/effects/effectsList | jq -r '.[]'
+    silent: false
+
+  set-effect:
+    desc: "Interactive: select and apply effect to device"
+    cmds:
+      - |
+        DEVICE_NAME=$(jq -r '.[].name' nanoleaf.json | gum choose --header="Select device:")
+        DEVICE=$(jq -r --arg name "$DEVICE_NAME" '.[] | select(.name==$name) | .ip' nanoleaf.json)
+        TOKEN=$(jq -r --arg name "$DEVICE_NAME" '.[] | select(.name==$name) | .token' nanoleaf.json)
+        EFFECT=$(curl -s http://$DEVICE:16021/api/v1/$TOKEN/effects/effectsList | jq -r '.[]' | gum choose --header="Select effect:")
+        curl -s -X PUT http://$DEVICE:16021/api/v1/$TOKEN/effects -d "{\"select\":\"$EFFECT\"}"
+        echo "Applied effect $EFFECT to $DEVICE_NAME"
+    silent: false
+
+  panel-layout:
+    desc: "Show panel layout for selected device"
+    cmds:
+      - |
+        DEVICE_NAME=$(jq -r '.[].name' nanoleaf.json | gum choose --header="Select device:")
+        DEVICE=$(jq -r --arg name "$DEVICE_NAME" '.[] | select(.name==$name) | .ip' nanoleaf.json)
+        TOKEN=$(jq -r --arg name "$DEVICE_NAME" '.[] | select(.name==$name) | .token' nanoleaf.json)
+        curl -s http://$DEVICE:16021/api/v1/$TOKEN/panelLayout | jq
+    silent: false
+
+  identify:
+    desc: "Trigger identify on selected device"
+    cmds:
+      - |
+        DEVICE_NAME=$(jq -r '.[].name' nanoleaf.json | gum choose --header="Select device:")
+        DEVICE=$(jq -r --arg name "$DEVICE_NAME" '.[] | select(.name==$name) | .ip' nanoleaf.json)
+        TOKEN=$(jq -r --arg name "$DEVICE_NAME" '.[] | select(.name==$name) | .token' nanoleaf.json)
+        curl -s -X PUT http://$DEVICE:16021/api/v1/$TOKEN/identify
+        echo "Identifying $DEVICE_NAME"
+    silent: false
+
+  rhythm:
+    desc: "Fetch rhythm settings for selected device"
+    cmds:
+      - |
+        DEVICE_NAME=$(jq -r '.[].name' nanoleaf.json | gum choose --header="Select device:")
+        DEVICE=$(jq -r --arg name "$DEVICE_NAME" '.[] | select(.name==$name) | .ip' nanoleaf.json)
+        TOKEN=$(jq -r --arg name "$DEVICE_NAME" '.[] | select(.name==$name) | .token' nanoleaf.json)
+        curl -s http://$DEVICE:16021/api/v1/$TOKEN/rhythm | jq
+    silent: false
+
+  apply-effect-via-list:
+    desc: "Use the existing effects-list task to select an effect, then apply it to a selected device"
+    cmds:
+      - |
+        # Prompt for effect via the effects-list task
+        EFFECT=$(task --silent effects-list)
+        # Prompt separately for device (to retrieve IP and token)
+        DEVICE_NAME=$(jq -r '.[].name' nanoleaf.json | gum choose --header="Select device to apply effect:")
+        IP=$(jq -r --arg name "$DEVICE_NAME" '.[] | select(.name==$name) | .ip' nanoleaf.json)
+        TOKEN=$(jq -r --arg name "$DEVICE_NAME" '.[] | select(.name==$name) | .token' nanoleaf.json)
+        # Apply the chosen effect
+        curl -s -X PUT http://$IP:16021/api/v1/$TOKEN/effects \
+          -H "Content-Type:application/json" \
+          -d "{\"select\":\"$EFFECT\"}"
+        echo "Applied effect '$EFFECT' to $DEVICE_NAME"
+    silent: false
