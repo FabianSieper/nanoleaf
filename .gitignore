@@ -1,0 +1,5 @@
+nanoleaf.json
+.vscode/
+node_modules/
+.venv/
+.task/

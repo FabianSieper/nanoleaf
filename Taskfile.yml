@@ -1,0 +1,70 @@
+version: '3'
+
+tasks:
+  get-nanoleaf-ip:
+    desc: "Scan network and print the first Light-Panels device IP"
+    cmds:
+      - |
+        nmap -p 16021 --open 192.168.178.0/24 \
+        | grep -m1 'Light-Panels' \
+        | sed -n 's/.*(\(.*\)).*/\1/p'
+    silent: true
+
+  get-nanoleaf-token:
+    desc: "Generate Nanoleaf pairing code (API token) from first Light-Panels device"
+    deps: ["get-nanoleaf-ip"]
+    cmds:
+      - |
+        IP=$(task get-nanoleaf-ip)
+        echo "Found Nanoleaf device at IP: $IP"
+        RESPONSE=$(curl -s -X POST http://$IP:16021/api/v1/new)
+        TOKEN=$(echo "$RESPONSE" | jq -r '.auth_token')
+        echo "Token: $TOKEN"
+        FILE=nanoleaf.json
+        if [ ! -f "$FILE" ]; then
+          echo '[]' > "$FILE"
+        fi
+        if ! jq -e ".[] | select(.ip==\"$IP\")" "$FILE" >/dev/null; then
+          jq ". += [{\"ip\":\"$IP\",\"token\":\"$TOKEN\"}]" "$FILE" > tmp && mv tmp "$FILE"
+          echo "Saved IP and token to $FILE"
+        else
+          echo "Entry for IP $IP already exists, skipping append"
+        fi
+    silent: true
+
+  nanoleaf-brightness:
+    desc: "Interactive: select a Nanoleaf from nanoleaf.json and set brightness"
+    cmds:
+      - |
+        DEVICE=$(jq -r '.[].ip' nanoleaf.json | gum choose --header="Select Nanoleaf IP:")
+        TOKEN=$(jq -r --arg ip "$DEVICE" '.[] | select(.ip==$ip) | .token' nanoleaf.json)
+        BRIGHTNESS=$(gum input --prompt "Enter brightness (0-100):")
+        curl -v -X PUT http://$DEVICE:16021/api/v1/$TOKEN/state \
+          -H "Content-Type: application/json" \
+          -d "{\"brightness\":{\"value\":$BRIGHTNESS}}"
+        echo "Set brightness of $DEVICE to $BRIGHTNESS"
+    silent: false
+
+  nanoleaf-control:
+    desc: "Interactive: select a Nanoleaf from nanoleaf.json and turn it ON or OFF"
+    cmds:
+      - |
+        DEVICE=$(jq -r '.[].ip' nanoleaf.json | gum choose --header="Select Nanoleaf IP:")
+        TOKEN=$(jq -r --arg ip "$DEVICE" '.[] | select(.ip==$ip) | .token' nanoleaf.json)
+        ACTION=$(gum choose on off --header="Select action:")
+        if [ "$ACTION" = "on" ]; then
+          VALUE=true
+        else
+          VALUE=false
+        fi
+        curl -s -X PUT http://$DEVICE:16021/api/v1/$TOKEN/state \
+          -H "Content-Type: application/json" \
+          -d "{\"on\":{\"value\":$VALUE}}"
+        echo "Set $DEVICE to $ACTION"
+    silent: true
+
+  install:
+    desc: "Install dependencies"
+    cmds:
+      - |
+        brew install nmap jq gum
