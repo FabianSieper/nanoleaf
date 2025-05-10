@@ -39,7 +39,7 @@ task install
 
 1. **Pair and store your API token**
 
-    Bring you nanoleaf light panel into pairming mode by pressing the off-button for 5 seconds until the led starts blinking. Afterwards, execute the following command:
+    Bring you nanoleaf light panel into pairming mode by pressing the off-button for 5 seconds until the led starts blinking. Afterwards, immediately execute the following command while the blinking is still going on:
 
    ```bash
    task new-nanoleaf
@@ -75,53 +75,21 @@ task install
 
    Prompts to select a device and displays full device information in JSON.
 
-5. **List available effects**
-
-   ```bash
-   task effects-list
-   ```
-
-   Prompts to select a device and outputs its available effects.
-
-6. **Apply an effect**
-
-   ```bash
-   task set-effect
-   ```
-
-   Prompts to select a device and then choose an effect to apply immediately.
-
-7. **Show panel layout**
-
-   ```bash
-   task panel-layout
-   ```
-
-   Prompts to select a device and displays its panel layout configuration.
-
-8. **Identify device**
-
-   ```bash
-   task identify
-   ```
-
-   Prompts to select a device and triggers its identify sequence (lights blink).
-
-9. **Fetch rhythm settings**
-
-    ```bash
-    task rhythm
-    ```
-
-    Prompts to select a device and shows its current rhythm (music sync) settings.
-
-10. **Apply effect via effects-list**
+5. **Apply effect via effects-list**
 
     ```bash
     task apply-effect-via-list
     ```
 
     Uses the existing `effects-list` to select an effect, then prompts to select a device to apply it.
+
+6. **Identify device**
+
+   ```bash
+   task identify
+   ```
+
+   Prompts to select a device and triggers its identify sequence (lights blink).
 
 ## nanoleaf.json
 
